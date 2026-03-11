@@ -12,7 +12,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "현재 위치에서 가장 가까운 횡단보도를 찾고 거리를 계산하기 위해 위치 권한이 필요합니다.",
+        "NSHealthShareUsageDescription": "맞춤형 횡단보도 도착 시간을 계산하기 위해 사용자의 보행 속도 데이터를 읽어옵니다.",
+        "NSHealthUpdateUsageDescription": "맞춤형 횡단보도 도착 시간을 계산하기 위해 건강 데이터 접근 권한이 필요합니다."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +26,23 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACTIVITY_RECOGNITION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "현재 위치 기반 최적의 경로와 횡단보도 시간을 안내하기 위해 위치 권한이 필요합니다."
+        }
+      ]
+    ]
   }
 }
