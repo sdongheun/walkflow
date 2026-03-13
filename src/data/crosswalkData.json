@@ -1,0 +1,57 @@
+[
+  {
+    "id": "156",
+    "city": "경상남도",
+    "district": "김해시",
+    "roadName": "인제로",
+    "address": "경상남도 김해시 인제로 174",
+    "latitude": 35.244068,
+    "longitude": 128.904199,
+    "signalSequence": "녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색",
+    "signalDuration": "26+73+24+27"
+  },
+  {
+    "id": "157",
+    "city": "경상남도",
+    "district": "김해시",
+    "roadName": "인제로",
+    "address": "경상남도 김해시 인제로 190",
+    "latitude": 35.245561,
+    "longitude": 128.904192,
+    "signalSequence": "녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색",
+    "signalDuration": "19+74+6+24+27"
+  },
+  {
+    "id": "158",
+    "city": "경상남도",
+    "district": "김해시",
+    "roadName": "인제로",
+    "address": "경상남도 김해시 인제로 200",
+    "latitude": 35.246546,
+    "longitude": 128.904085,
+    "signalSequence": "녹색/황색/적색+녹색/황색/적색",
+    "signalDuration": "29+121"
+  },
+  {
+    "id": "159",
+    "city": "경상남도",
+    "district": "김해시",
+    "roadName": "인제로",
+    "address": "경상남도 김해시 인제로 230",
+    "latitude": 35.249234,
+    "longitude": 128.904415,
+    "signalSequence": "녹색/황색/적색+녹색/황색/적색+녹색/황색/적색",
+    "signalDuration": "21+99+30"
+  },
+  {
+    "id": "160",
+    "city": "경상남도",
+    "district": "김해시",
+    "roadName": "인제로",
+    "address": "경상남도 김해시 인제로 266",
+    "latitude": 35.252106,
+    "longitude": 128.903344,
+    "signalSequence": "녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색+녹색/녹색화살표/황색/적색",
+    "signalDuration": "10+79+37+24"
+  }
+]
