@@ -23,27 +23,48 @@ export const getNearestCrosswalk = (
 
 /**
  * 횡단보도의 실시간 신호 상태를 반환합니다.
- * - 사이클 총 시간 140초
- * - B횡단보도 파란불 20초
- * - B횡단보도 시작 기준일: 2026년 3월 14일 02:34:26 KST
- * 
+ * - 새벽 시간대: 평균 140초 사이클 (02:34:26 시작 기준)
+ * - 토요일 낮 시간대 (12시 이후): 180초 사이클 (14:44:04 시작 기준)
+ *
  * B를 사이클의 시작점(0초)으로 간주합니다:
  * - 0 ~ 20초: B 횡단보도 초록불
- * - 20 ~ 140초: B 횡단보도 빨간불
- * (A 횡단보도는 임의로 사이클 마지막 24초(116~140)를 초록불로 가정)
+ * - 그 외: B 횡단보도 빨간불
  */
 export const getVirtualSignalStatus = (
   crosswalkType: "A" | "B" = "A",
-  customTimeSeconds?: number
+  customTimeSeconds?: number,
 ): SignalStatus => {
-  const CYCLE_LENGTH = 140; // 총 140초
+  const nowUnixSeconds = customTimeSeconds ?? Math.floor(Date.now() / 1000);
 
-  // 기준 시간: 2026년 3월 14일 02시 34분 26초 (한국시간)
-  const BASE_TIME_MS = new Date("2026-03-14T02:34:26+09:00").getTime();
+  // 현재 시간에 맞춰서 요일과 시간 구하기
+  const now = new Date(nowUnixSeconds * 1000);
+  const day = now.getDay(); // 0(일) ~ 6(토)
+  const hours = now.getHours();
+
+  // 토요일 오후 12시(정오) 이후인지 판별
+  const isSaturdayAfternoon = day === 6 && hours >= 12;
+
+  let CYCLE_LENGTH: number;
+  let BASE_TIME_MS: number;
+  let aGreenStart: number;
+  let aGreenEnd: number;
+
+  if (isSaturdayAfternoon) {
+    // 토요일 낮 시간대 (앱이 2초 느리다는 피드백 반영: 14:44:02로 수정하여 2초 앞당김)
+    CYCLE_LENGTH = 180; // 3분
+    BASE_TIME_MS = new Date("2026-03-14T14:44:02+09:00").getTime();
+    aGreenStart = 156;
+    aGreenEnd = 180;
+  } else {
+    // 새벽 시간대 및 평시
+    CYCLE_LENGTH = 140;
+    BASE_TIME_MS = new Date("2026-03-14T02:34:26+09:00").getTime();
+    aGreenStart = 116;
+    aGreenEnd = 140;
+  }
+
   const baseTimeSeconds = Math.floor(BASE_TIME_MS / 1000);
 
-  const nowUnixSeconds = customTimeSeconds ?? Math.floor(Date.now() / 1000);
-  
   let diff = nowUnixSeconds - baseTimeSeconds;
   if (diff < 0) {
     diff = (diff % CYCLE_LENGTH) + CYCLE_LENGTH;
@@ -51,15 +72,15 @@ export const getVirtualSignalStatus = (
   const cyclePosition = diff % CYCLE_LENGTH;
 
   if (crosswalkType === "A") {
-    if (cyclePosition >= 116 && cyclePosition < 140) {
+    if (cyclePosition >= aGreenStart && cyclePosition < aGreenEnd) {
       return {
         isGreen: true,
-        timeRemaining: 140 - cyclePosition, 
+        timeRemaining: aGreenEnd - cyclePosition,
       };
     } else {
       return {
         isGreen: false,
-        timeRemaining: 116 - cyclePosition, 
+        timeRemaining: aGreenStart - cyclePosition,
       };
     }
   } else {
@@ -72,7 +93,7 @@ export const getVirtualSignalStatus = (
     } else {
       return {
         isGreen: false,
-        timeRemaining: 140 - cyclePosition, 
+        timeRemaining: CYCLE_LENGTH - cyclePosition,
       };
     }
   }
