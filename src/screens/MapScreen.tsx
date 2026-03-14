@@ -1,6 +1,6 @@
-import React from "react";
-import { Text, View, Dimensions, TouchableOpacity } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import React, { useRef } from "react";
+import { Text, View, Dimensions, TouchableOpacity, Platform } from "react-native";
+import { WebView } from "react-native-webview";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../types/navigation";
 import { ArrowLeft, Navigation, HeartPulse } from "lucide-react-native";
@@ -31,35 +31,54 @@ export default function MapScreen({ route, navigation }: Props) {
   const { destinationName } = route.params;
   const { walkingSpeed, isHealthAppLinked } = useUserStore();
 
+  const webViewRef = useRef<WebView>(null);
+  const mapUrl = "https://map-web-six.vercel.app";
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'log') {
+        console.log("[웹뷰 로그]", data.message);
+      } else if (data.type === 'ready') {
+        console.log("✅ Vercel 지도 준비 완료! 앱에서 좌표 데이터를 쏩니다.");
+        const pointsData = [
+          { latitude: MOCK_START.latitude, longitude: MOCK_START.longitude },
+          { latitude: TARGET_CROSSWALK.latitude, longitude: TARGET_CROSSWALK.longitude },
+          { latitude: MOCK_DEST.latitude, longitude: MOCK_DEST.longitude }
+        ];
+
+        // 준비된 Vercel 지도에게 점 3개의 좌표를 넘겨줌!
+        webViewRef.current?.postMessage(JSON.stringify({
+          type: 'INIT_MAP',
+          points: pointsData
+        }));
+      }
+    } catch (e) {
+      console.log("JSON 파싱 에러:", e);
+    }
+  };
+
   return (
     <View className="flex-1 bg-white">
-      <MapView
-        className="w-full h-full"
-        initialRegion={{
-          latitude: MOCK_START.latitude,
-          longitude: MOCK_START.longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
-        }}
-        showsUserLocation={true}
-      >
-        {/* 임시 경로 표시 */}
-        <Polyline
-          coordinates={[MOCK_START, TARGET_CROSSWALK, MOCK_DEST]}
-          strokeColor="#3B82F6"
-          strokeWidth={6}
-        />
-
-        {/* 횡단보도 마커 */}
-        <Marker coordinate={TARGET_CROSSWALK} title="타겟 횡단보도">
-          <View className="justify-center items-center">
-            <View className="absolute w-10 h-10 rounded-full bg-blue-500/40" />
-            <View className="bg-blue-500 p-1.5 rounded-2xl overflow-hidden">
-              <Navigation size={20} color="white" />
-            </View>
-          </View>
-        </Marker>
-      </MapView>
+      {/* 백그라운드 카카오맵 (플랫폼별 분기 처리) */}
+      <View className="absolute top-0 w-full h-full">
+        {Platform.OS === 'web' ? (
+          <iframe
+            src={mapUrl}
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="Kakao Map"
+          />
+        ) : (
+          <WebView
+            ref={webViewRef}
+            source={{ uri: mapUrl }}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            onMessage={handleWebViewMessage}
+            style={{ flex: 1 }}
+          />
+        )}
+      </View>
 
       {/* 헤더 오버레이 - 뒤로가기 및 목적지 표시 */}
       <View className="absolute top-[60px] left-5 right-5 flex-row items-center">

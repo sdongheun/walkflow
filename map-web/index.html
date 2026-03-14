@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WalkFlow Map</title>
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f6f6f6; font-family: sans-serif; }
+    #map { width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    var map;
+    var markers = [];
+    var polyline = null;
+    var kakaoReady = false; // 카카오 SDK가 완전히 준비됐는지 확인하는 깃발
+
+    // ✅ React Native 앱으로 메시지를 보내는 함수
+    function sendToApp(data) {
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(data));
+      } else {
+        console.log('[sendToApp]', data);
+      }
+    }
+
+    // ✅ 지도 초기화 함수
+    function initMap(startLat, startLng) {
+      var container = document.getElementById('map');
+      var options = {
+        center: new kakao.maps.LatLng(startLat, startLng),
+        level: 3
+      };
+      map = new kakao.maps.Map(container, options);
+      sendToApp({ type: 'log', message: '지도 초기화 완료!' });
+    }
+
+    // ✅ 마커와 경로 선 그리기 함수
+    function drawRoute(pointsData) {
+      if (!map) return;
+
+      // 기존 마커, 선 지우기
+      markers.forEach(function(m) { m.setMap(null); });
+      markers = [];
+      if (polyline) polyline.setMap(null);
+
+      var path = [];
+      pointsData.forEach(function(point) {
+        var pos = new kakao.maps.LatLng(point.latitude, point.longitude);
+        path.push(pos);
+        var marker = new kakao.maps.Marker({ position: pos, map: map });
+        markers.push(marker);
+      });
+
+      polyline = new kakao.maps.Polyline({
+        path: path,
+        strokeWeight: 6,
+        strokeColor: '#3B82F6',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid'
+      });
+      polyline.setMap(map);
+
+      // 선이 화면에 다 보이도록 자동 줌 조절
+      if (path.length > 0) {
+        var bounds = new kakao.maps.LatLngBounds();
+        path.forEach(function(p) { bounds.extend(p); });
+        map.setBounds(bounds);
+      }
+      sendToApp({ type: 'log', message: '경로 그리기 완료!' });
+    }
+
+    // ✅ 앱(RN)에서 데이터를 보내오면 처리하는 함수
+    function handleAppMessage(dataString) {
+      sendToApp({ type: 'log', message: '앱에서 데이터 도착! ' + dataString.substring(0, 50) });
+      try {
+        var data = JSON.parse(dataString);
+        if (data.type === 'INIT_MAP') {
+          initMap(data.points[0].latitude, data.points[0].longitude);
+          drawRoute(data.points);
+        }
+      } catch (err) {
+        sendToApp({ type: 'log', message: '처리 에러: ' + err.message });
+      }
+    }
+
+    // ✅ 앱에서 오는 메시지 수신 설정 (iOS, Android 둘 다)
+    document.addEventListener("message", function(e) { handleAppMessage(e.data); });
+    window.addEventListener("message", function(e) { handleAppMessage(e.data); });
+
+    // ✅ 카카오 SDK를 동적으로 로딩 (로딩 완료된 후에 앱에 "준비됐어!" 신호 보냄)
+    (function loadKakaoSDK() {
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      // autoload=false: SDK 파일만 받고, 실제 초기화는 kakao.maps.load() 호출 때 함
+      script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=68a39fc18a7faf0a4c2d1d2e2125dd48&libraries=services,clusterer&autoload=false';
+
+      script.onload = function() {
+        sendToApp({ type: 'log', message: 'SDK 파일 다운로드 완료. kakao.maps.load() 호출 중...' });
+
+        // SDK 파일이 다 왔으면, 이제 진짜 지도 엔진 초기화 시작
+        kakao.maps.load(function() {
+          kakaoReady = true;
+          sendToApp({ type: 'log', message: '카카오 지도 엔진 준비 완료!' });
+
+          // ⭐ 이 시점(카카오 완전 준비 완료)에서 앱에게 "ready" 신호 보냄!
+          sendToApp({ type: 'ready' });
+        });
+      };
+
+      script.onerror = function() {
+        sendToApp({ type: 'log', message: '❌ SDK 로드 실패! 카카오 도메인 설정을 확인해주세요.' });
+        document.getElementById('map').innerHTML =
+          '<div style="padding:40px; text-align:center; color:red;">' +
+          '<b>카카오 지도 로드 실패</b><br/><br/>' +
+          '카카오 개발자 콘솔의 Web 플랫폼에<br/>' +
+          '<b>https://map-web-six.vercel.app</b><br/>' +
+          '등록 여부를 확인해주세요!</div>';
+      };
+
+      document.head.appendChild(script);
+    })();
+  </script>
+</body>
+</html>
