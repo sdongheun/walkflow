@@ -1,3 +1,3 @@
-console.log('loading expo cli...');
-require('@expo/cli');
-console.log('done loading');
+// console.log('loading expo cli...');
+// require('@expo/cli');
+// console.log('done loading');
