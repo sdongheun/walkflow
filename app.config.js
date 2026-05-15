@@ -11,7 +11,23 @@ if (!naverMapClientId) {
 module.exports = {
   expo: {
     ...appJson.expo,
+    extra: {
+      ...(appJson.expo.extra || {}),
+      eas: {
+        projectId: "6bac3426-9a74-4948-9623-5656217a86ef",
+      },
+    },
     plugins: [
+      [
+        "expo-build-properties",
+        {
+          android: {
+            extraMavenRepos: [
+              "https://repository.map.naver.com/archive/maven",
+            ],
+          },
+        },
+      ],
       [
         "@mj-studio/react-native-naver-map",
         {

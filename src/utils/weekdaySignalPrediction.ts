@@ -39,6 +39,9 @@ export type PedestrianCountdown =
       segmentLabel: string;
       cycleLengthSec: number;
       anchorStatus: StableAnchorStatus;
+      currentWindowStart: Date;
+      currentWindowEnd: Date;
+      upcomingGreens: UpcomingGreenSlot[];
     }
   | {
       status: "transition";
@@ -46,6 +49,12 @@ export type PedestrianCountdown =
       segmentLabel: string;
       message: string;
     };
+
+export type UpcomingGreenSlot = {
+  startsAt: Date;
+  secondsUntilStart: number;
+  isCurrent: boolean;
+};
 
 export type WeekdayStableSegment = {
   segmentLabel: string;
@@ -422,6 +431,43 @@ function getPedestrianWindowForCycle(
   };
 }
 
+function getUpcomingGreenSlots(
+  now: Date,
+  phase1Start: Date,
+  cycleLengthSec: number,
+  split: StableSplit,
+  crosswalkType: CrosswalkType,
+  count: number,
+): UpcomingGreenSlot[] {
+  const slots: UpcomingGreenSlot[] = [];
+  let cursorPhase1Start = phase1Start;
+
+  while (slots.length < count) {
+    const window = getPedestrianWindowForCycle(
+      cursorPhase1Start,
+      split,
+      crosswalkType,
+    );
+
+    if (now.getTime() < window.end.getTime()) {
+      slots.push({
+        startsAt: window.start,
+        secondsUntilStart: Math.max(
+          0,
+          Math.floor((window.start.getTime() - now.getTime()) / 1000),
+        ),
+        isCurrent: now.getTime() >= window.start.getTime(),
+      });
+    }
+
+    cursorPhase1Start = new Date(
+      cursorPhase1Start.getTime() + cycleLengthSec * 1000,
+    );
+  }
+
+  return slots;
+}
+
 export function getPedestrianCountdown(
   now: Date,
   crosswalkType: CrosswalkType,
@@ -455,6 +501,14 @@ export function getPedestrianCountdown(
     prediction.split,
     crosswalkType,
   );
+  const upcomingGreens = getUpcomingGreenSlots(
+    now,
+    phase1Start,
+    prediction.cycleLengthSec,
+    prediction.split,
+    crosswalkType,
+    3,
+  );
 
   if (now.getTime() < currentWindow.start.getTime()) {
     return {
@@ -468,6 +522,9 @@ export function getPedestrianCountdown(
       segmentLabel: prediction.segmentLabel,
       cycleLengthSec: prediction.cycleLengthSec,
       anchorStatus: prediction.anchorStatus,
+      currentWindowStart: currentWindow.start,
+      currentWindowEnd: currentWindow.end,
+      upcomingGreens,
     };
   }
 
@@ -483,6 +540,9 @@ export function getPedestrianCountdown(
       segmentLabel: prediction.segmentLabel,
       cycleLengthSec: prediction.cycleLengthSec,
       anchorStatus: prediction.anchorStatus,
+      currentWindowStart: currentWindow.start,
+      currentWindowEnd: currentWindow.end,
+      upcomingGreens,
     };
   }
 
@@ -506,6 +566,9 @@ export function getPedestrianCountdown(
     segmentLabel: prediction.segmentLabel,
     cycleLengthSec: prediction.cycleLengthSec,
     anchorStatus: prediction.anchorStatus,
+    currentWindowStart: nextWindow.start,
+    currentWindowEnd: nextWindow.end,
+    upcomingGreens,
   };
 }
 

@@ -1,163 +1,69 @@
-import React, { useEffect, useState } from "react";
-import { Text, View, TouchableOpacity } from "react-native";
+import React from "react";
+import { Platform, ScrollView, Text, View } from "react-native";
 import {
-  NaverMapView,
   NaverMapMarkerOverlay,
-  NaverMapPathOverlay,
+  NaverMapView,
 } from "@mj-studio/react-native-naver-map";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../types/navigation";
-import { ArrowLeft, HeartPulse } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CountdownOverlay from "../components/CountdownOverlay";
-import { syncHealthData } from "../utils/healthData";
-import { useUserStore } from "../store/useUserStore";
-import * as Location from "expo-location";
 
-type Props = NativeStackScreenProps<RootStackParamList, "Map">;
+const INTERSECTION_NAME = "인제대후문삼거리";
+const INTERSECTION_COORDS = {
+  latitude: 35.254106,
+  longitude: 128.903344,
+};
 
-type Coord = { latitude: number; longitude: number };
-
-export default function MapScreen({ route, navigation }: Props) {
-  const { destinationName, destinationCoords } = route.params;
-  const { walkingSpeed, isHealthAppLinked } = useUserStore();
-
-  const [currentLocation, setCurrentLocation] = useState<Coord | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [isLocating, setIsLocating] = useState(true);
-
-  // Render the map immediately and layer the current location in once we have it.
-  useEffect(() => {
-    async function getPos() {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setLocationError("위치 권한이 없어 기본 위치로 지도를 표시합니다.");
-          return;
-        }
-
-        const location = await Location.getCurrentPositionAsync({});
-        setCurrentLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-      } catch (error) {
-        console.error("현재 위치 조회 에러:", error);
-        setLocationError("현재 위치를 가져오지 못해 기본 위치로 지도를 표시합니다.");
-      } finally {
-        setIsLocating(false);
-      }
-    }
-
-    getPos();
-  }, []);
-
-  const mapCenter =
-    currentLocation ??
-    destinationCoords ?? {
-      latitude: 35.254106,
-      longitude: 128.903344,
-    };
-
-  // 경로 포인트 (Tmap API 연동 전: 직선, 연동 후: 실제 도보 경로)
-  const routeCoords: Coord[] = [
-    ...(currentLocation ? [currentLocation] : []),
-    ...(destinationCoords ? [destinationCoords] : []),
-  ];
+export default function MapScreen() {
+  const insets = useSafeAreaInsets();
+  const topPadding = insets.top + (Platform.OS === "android" ? 28 : 20);
 
   return (
-    <View className="flex-1 bg-white">
-      {/* ✅ 지도 컨테이너 (배경으로 꽉 채움) */}
-      <View className="absolute inset-0">
-        <NaverMapView
-          style={{ width: "100%", height: "100%" }}
-          camera={{
-            latitude: mapCenter.latitude,
-            longitude: mapCenter.longitude,
-            zoom: 16,
-          }}
-          isShowLocationButton={true}
-        >
-          {/* 내 위치 마커 */}
-          {currentLocation && (
-            <NaverMapMarkerOverlay
-              key="current-location"
-              latitude={currentLocation.latitude}
-              longitude={currentLocation.longitude}
-              caption={{ text: "내 위치" }}
-              width={24}
-              height={24}
-            />
-          )}
-
-          {/* 목적지 마커 */}
-          {destinationCoords && (
-            <NaverMapMarkerOverlay
-              key="destination-location"
-              latitude={destinationCoords.latitude}
-              longitude={destinationCoords.longitude}
-              caption={{ text: destinationName }}
-            />
-          )}
-
-          {/* 경로 표시 */}
-          {routeCoords.length >= 2 && (
-            <NaverMapPathOverlay
-              key="route-line"
-              coords={routeCoords}
-              color="#3B82F6"
-              width={7}
-            />
-          )}
-        </NaverMapView>
-      </View>
-
-      {/* 헤더 오버레이 */}
-      <View className="absolute top-[60px] left-5 right-5 flex-row items-center">
-        <TouchableOpacity
-          className="w-11 h-11 rounded-full bg-white justify-center items-center shadow-sm"
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={24} color="#111827" />
-        </TouchableOpacity>
-        <View className="ml-3 bg-white px-4 py-2.5 rounded-full shadow-sm flex-row items-center flex-1">
-          <Text className="text-base font-semibold text-gray-900">
-            {destinationName}
+    <View className="flex-1 bg-stone-100">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: topPadding,
+          paddingBottom: 32,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="mb-5">
+          <Text className="text-stone-900 text-3xl font-black">
+            {INTERSECTION_NAME}
+          </Text>
+          <Text className="text-stone-500 text-sm mt-2">
+            실시간 횡단보도 카운트다운
           </Text>
         </View>
-      </View>
 
-      {/* 건강 정보 버튼 */}
-      <View className="absolute top-[120px] right-5">
-        <TouchableOpacity
-          className={`flex-row items-center px-4 py-3 rounded-full shadow-sm ${
-            isHealthAppLinked ? "bg-green-50" : "bg-white"
-          }`}
-          onPress={syncHealthData}
-        >
-          <HeartPulse
-            size={20}
-            color={isHealthAppLinked ? "#10B981" : "#EF4444"}
-          />
-          <Text
-            className={`font-semibold ml-2 ${
-              isHealthAppLinked ? "text-green-600" : "text-gray-700"
-            }`}
-          >
-            {isHealthAppLinked ? `${walkingSpeed}m/s` : "건강 앱 연동"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+        <CountdownOverlay />
 
-      {(isLocating || locationError) && (
-        <View className="absolute top-[180px] left-5 right-5 bg-white/95 px-4 py-3 rounded-2xl shadow-sm">
-          <Text className="text-sm text-gray-700">
-            {locationError ?? "현재 위치를 확인하는 중입니다..."}
+        <View className="rounded-[28px] border border-stone-200 bg-white px-5 py-5 mt-4">
+          <Text className="text-stone-900 text-lg font-black">
+            {INTERSECTION_NAME}
           </Text>
+
+          <View className="h-44 rounded-[22px] overflow-hidden mt-4 border border-stone-200">
+            <NaverMapView
+              style={{ width: "100%", height: "100%" }}
+              camera={{
+                latitude: INTERSECTION_COORDS.latitude,
+                longitude: INTERSECTION_COORDS.longitude,
+                zoom: 16,
+              }}
+              isShowLocationButton={false}
+            >
+              <NaverMapMarkerOverlay
+                key="inje-backgate-intersection"
+                latitude={INTERSECTION_COORDS.latitude}
+                longitude={INTERSECTION_COORDS.longitude}
+                caption={{ text: INTERSECTION_NAME }}
+              />
+            </NaverMapView>
+          </View>
         </View>
-      )}
-
-      {/* 카운트다운 오버레이 */}
-      <CountdownOverlay />
+      </ScrollView>
     </View>
   );
 }
